@@ -2,12 +2,14 @@ package com.loony.bodokeyboard
 
 import android.content.ClipboardManager
 import android.content.SharedPreferences
+import android.icu.text.BreakIterator
 import android.inputmethodservice.InputMethodService
 import android.media.AudioManager
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.ExtractedTextRequest
+import android.view.inputmethod.InputConnection
 import android.widget.FrameLayout
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
@@ -17,6 +19,13 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.loony.bodokeyboard.data.KeyboardMode
+import com.loony.bodokeyboard.viewmodel.KeyboardViewModel
+import androidx.core.view.inputmethod.EditorInfoCompat
+import androidx.core.view.inputmethod.InputConnectionCompat
+import androidx.core.view.inputmethod.InputContentInfoCompat
+
+private val TRAILING_WORD_RE = Regex("""\S+$""")
 
 class BodoIME : InputMethodService(), LifecycleOwner, ViewModelStoreOwner, SavedStateRegistryOwner {
 
@@ -45,6 +54,7 @@ class BodoIME : InputMethodService(), LifecycleOwner, ViewModelStoreOwner, Saved
         savedStateRegistryController.performRestore(null)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         viewModel.initDatabase(this)
+        viewModel.initEmojiPrefs(this)
         prefs = getSharedPreferences("keyboard_settings", MODE_PRIVATE)
         prefs.registerOnSharedPreferenceChangeListener(prefListener)
         loadSettings()
@@ -108,11 +118,25 @@ class BodoIME : InputMethodService(), LifecycleOwner, ViewModelStoreOwner, Saved
         return root
     }
 
+    override fun onStartInput(info: EditorInfo?, restarting: Boolean) {
+        super.onStartInput(info, restarting)
+        // Runs on every editor bind, even when the input view itself doesn't
+        // toggle (e.g. focus moves between two fields in the same screen) —
+        // onStartInputView is not guaranteed to re-fire in that case, so this
+        // is the only reliable place to flush stale state from the old field.
+        viewModel.updateEditorInfo(info)
+        commitAndClearTranslit()
+    }
+
+    override fun onFinishInput() {
+        super.onFinishInput()
+        commitAndClearTranslit()
+    }
+
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         loadSettings()
         viewModel.updateEditorInfo(info)
-        // Clear any stale translit state from a previous input field
         commitAndClearTranslit()
         checkAutoCap(currentInputConnection ?: return)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
@@ -167,8 +191,20 @@ class BodoIME : InputMethodService(), LifecycleOwner, ViewModelStoreOwner, Saved
                 .playSoundEffect(AudioManager.FX_KEYPRESS_STANDARD)
         }
 
+        // Rich Content (GIF) handling
+        if (key.startsWith("content://")) {
+            handleGifCommit(android.net.Uri.parse(key))
+            return
+        }
+
+        // GIF handling (fallback or legacy)
+        if (key.startsWith("http")) {
+            ic.commitText(key, 1)
+            return
+        }
+
         // Route all printable characters through transliteration when in TRANSLIT mode
-        if (viewModel.isTranslitMode() && key.length == 1 && key[0].isLetter()) {
+        if (viewModel.isTranslitMode() && (key.length == 1 && key[0].isLetter() || key == "_")) {
             handleTranslitChar(key[0])
             checkAutoCap(ic)
             return
@@ -181,7 +217,7 @@ class BodoIME : InputMethodService(), LifecycleOwner, ViewModelStoreOwner, Saved
                     val newDev = viewModel.translitBackspace()
                     ic.setComposingText(newDev, 1)
                 } else {
-                    ic.deleteSurroundingText(1, 0)
+                    ic.deleteSurroundingText(codeUnitsForBackspace(ic), 0)
                 }
                 checkAutoCap(ic)
             }
@@ -204,6 +240,13 @@ class BodoIME : InputMethodService(), LifecycleOwner, ViewModelStoreOwner, Saved
 
             "SPACE" -> {
                 val now = System.currentTimeMillis()
+                // Flush any pending translit buffer first, whichever branch runs below —
+                // otherwise a double-tap-to-period can replace the visible composing
+                // text while the buffer still holds the stale Latin keystrokes.
+                if (viewModel.isTranslitMode()) {
+                    val flushed = viewModel.flushTranslit()
+                    if (flushed.isNotEmpty()) ic.commitText(flushed, 1)
+                }
                 if (now - lastSpaceTime < 300L) {
                     // Double tap space -> insert period
                     val before = ic.getTextBeforeCursor(2, 0)?.toString() ?: ""
@@ -214,11 +257,6 @@ class BodoIME : InputMethodService(), LifecycleOwner, ViewModelStoreOwner, Saved
                         ic.commitText(" ", 1)
                     }
                 } else {
-                    // Flush pending translit buffer before committing the space
-                    if (viewModel.isTranslitMode()) {
-                        val flushed = viewModel.flushTranslit()
-                        if (flushed.isNotEmpty()) ic.commitText(flushed, 1)
-                    }
                     ic.commitText(" ", 1)
                 }
                 lastSpaceTime = now
@@ -255,10 +293,12 @@ class BodoIME : InputMethodService(), LifecycleOwner, ViewModelStoreOwner, Saved
             "SYM_PAGE" -> viewModel.toggleSymbolsPage()
 
             "ABC" -> {
-                if (viewModel.keyboardMode.value == KeyboardMode.EMOJI || viewModel.keyboardMode.value == KeyboardMode.GIF) {
-                    viewModel.setMode(KeyboardMode.BODO)
+                if (viewModel.keyboardMode.value == KeyboardMode.EMOJI || 
+                    viewModel.keyboardMode.value == KeyboardMode.GIF ||
+                    viewModel.keyboardMode.value == KeyboardMode.NUMERIC) {
+                    viewModel.setMode(KeyboardMode.ENGLISH)
                 } else {
-                    viewModel.toggleSymbols()
+                    viewModel.resetSymbols()
                 }
             }
 
@@ -268,6 +308,16 @@ class BodoIME : InputMethodService(), LifecycleOwner, ViewModelStoreOwner, Saved
                     if (viewModel.keyboardMode.value == KeyboardMode.BODO) KeyboardMode.ENGLISH
                     else KeyboardMode.BODO
                 )
+            }
+
+            "SWITCH_BODO" -> {
+                commitAndClearTranslit()
+                viewModel.setMode(KeyboardMode.BODO)
+            }
+
+            "SWITCH_EN" -> {
+                commitAndClearTranslit()
+                viewModel.setMode(KeyboardMode.ENGLISH)
             }
 
             "TRANSLIT_TOGGLE" -> {
@@ -282,6 +332,17 @@ class BodoIME : InputMethodService(), LifecycleOwner, ViewModelStoreOwner, Saved
                 viewModel.setMode(KeyboardMode.EMOJI)
             }
 
+            "SUGGESTION_TOGGLE" -> {
+                viewModel.suggestionsEnabled.value = !viewModel.suggestionsEnabled.value
+                // Refresh suggestions based on new state
+                val ic = currentInputConnection
+                if (ic != null) {
+                    val textBefore = ic.getTextBeforeCursor(20, 0)?.toString() ?: ""
+                    val word = textBefore.split(" ", "\n").lastOrNull() ?: ""
+                    viewModel.updateSuggestions(word)
+                }
+            }
+
             "GIF_SWITCH" -> {
                 commitAndClearTranslit()
                 viewModel.setMode(KeyboardMode.GIF)
@@ -292,6 +353,8 @@ class BodoIME : InputMethodService(), LifecycleOwner, ViewModelStoreOwner, Saved
                 intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                 startActivity(intent)
             }
+
+            "COLLAPSE" -> requestHideSelf(0)
 
             else -> {
                 if (viewModel.isTranslitMode()) {
@@ -307,6 +370,46 @@ class BodoIME : InputMethodService(), LifecycleOwner, ViewModelStoreOwner, Saved
                 checkAutoCap(ic)
             }
         }
+    }
+
+    private fun handleGifCommit(uri: android.net.Uri) {
+        val ic = currentInputConnection ?: return
+        val editorInfo = currentInputEditorInfo ?: return
+
+        // Check if the target app supports GIF
+        val mimeTypes = EditorInfoCompat.getContentMimeTypes(editorInfo)
+        val gifSupported = mimeTypes.any { it == "image/gif" }
+
+        if (gifSupported) {
+            val inputContentInfo = InputContentInfoCompat(
+                uri,
+                android.content.ClipDescription("GIF", arrayOf("image/gif")),
+                null // linkUri
+            )
+            InputConnectionCompat.commitContent(
+                ic,
+                editorInfo,
+                inputContentInfo,
+                InputConnectionCompat.INPUT_CONTENT_GRANT_READ_URI_PERMISSION,
+                null // opts
+            )
+        } else {
+            android.widget.Toast.makeText(this, "This field doesn't support GIFs", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
+     * Number of UTF-16 code units making up the single grapheme cluster (emoji, ZWJ
+     * sequence, surrogate pair, etc.) immediately before the cursor, so backspace
+     * deletes one whole visible character instead of splitting it.
+     */
+    private fun codeUnitsForBackspace(ic: InputConnection): Int {
+        val before = ic.getTextBeforeCursor(64, 0)?.toString() ?: return 1
+        if (before.isEmpty()) return 1
+        val boundary = BreakIterator.getCharacterInstance().apply { setText(before) }
+        boundary.last()
+        val clusterStart = boundary.previous()
+        return if (clusterStart == BreakIterator.DONE) 1 else before.length - clusterStart
     }
 
     private fun checkAutoCap(ic: android.view.inputmethod.InputConnection) {
@@ -389,7 +492,7 @@ class BodoIME : InputMethodService(), LifecycleOwner, ViewModelStoreOwner, Saved
         // 2. Identify the word-part to replace (the word currently being typed)
         val before = ic.getTextBeforeCursor(50, 0)?.toString() ?: ""
         // Matches any non-whitespace characters at the end of the string
-        val lastWordMatch = Regex("""\S+$""").find(before)
+        val lastWordMatch = TRAILING_WORD_RE.find(before)
 
         if (lastWordMatch != null) {
             ic.deleteSurroundingText(lastWordMatch.value.length, 0)

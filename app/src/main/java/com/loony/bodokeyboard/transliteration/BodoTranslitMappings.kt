@@ -1,4 +1,4 @@
-package com.loony.bodokeyboard
+package com.loony.bodokeyboard.transliteration
 
 /**
  * Bodo Devanagari Unicode constants — PramukhIME-compatible.
@@ -220,6 +220,7 @@ object BodoTranslitMappings {
         "OM" to U.OM,
         "|"  to U.DANDA,
         "'"  to U.MODIFIER_APOSTROPHE,
+        "_"  to "", // Translit reset key
         "H"  to U.VISARGA,
     )
 

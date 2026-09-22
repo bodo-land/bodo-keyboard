@@ -1,4 +1,4 @@
-package com.loony.bodokeyboard
+package com.loony.bodokeyboard.transliteration
 
 import java.text.Normalizer
 
@@ -65,24 +65,25 @@ class TransliterationEngine {
 
     // ── Trie ──────────────────────────────────────────────────────────────────
 
-    private class TrieNode {
-        val children = HashMap<Char, TrieNode>(4)
-        var kind: TokenKind? = null
-    }
-
-    private val trieRoot: TrieNode = buildTrie()
-
-    private fun buildTrie(): TrieNode {
-        val root = TrieNode()
-        fun insert(key: String, kind: TokenKind) {
-            var node = root
-            for (ch in key) node = node.children.getOrPut(ch) { TrieNode() }
-            node.kind = kind
+    companion object {
+        private class TrieNode {
+            val children = HashMap<Char, TrieNode>(4)
+            var kind: TokenKind? = null
         }
-        BodoTranslitMappings.SPECIALS.keys.forEach   { insert(it, TokenKind.SPECIAL)   }
-        BodoTranslitMappings.CONSONANTS.keys.forEach { insert(it, TokenKind.CONSONANT) }
-        BodoTranslitMappings.VOWELS.keys.forEach     { insert(it, TokenKind.VOWEL)     }
-        return root
+
+        // Built once at first use, shared across all engine instances.
+        private val trieRoot: TrieNode by lazy {
+            val root = TrieNode()
+            fun insert(key: String, kind: TokenKind) {
+                var node = root
+                for (ch in key) node = node.children.getOrPut(ch) { TrieNode() }
+                node.kind = kind
+            }
+            BodoTranslitMappings.SPECIALS.keys.forEach   { insert(it, TokenKind.SPECIAL)   }
+            BodoTranslitMappings.CONSONANTS.keys.forEach { insert(it, TokenKind.CONSONANT) }
+            BodoTranslitMappings.VOWELS.keys.forEach     { insert(it, TokenKind.VOWEL)     }
+            root
+        }
     }
 
     // ── Tokenizer ─────────────────────────────────────────────────────────────
@@ -196,11 +197,13 @@ class TransliterationEngine {
 
     // ── Custom / learned rules ────────────────────────────────────────────────
 
-    private val customRules = mutableMapOf<String, String>()
+    // Replaced wholesale (never mutated in place) so concurrent reads from
+    // transliterate() never observe a partially-cleared map.
+    @Volatile
+    private var customRules: Map<String, String> = emptyMap()
 
     fun updateRules(rules: Map<String, String>) {
-        customRules.clear()
-        customRules.putAll(rules)
+        customRules = rules
     }
 
     // ── Streaming interface for BodoIME ───────────────────────────────────────
