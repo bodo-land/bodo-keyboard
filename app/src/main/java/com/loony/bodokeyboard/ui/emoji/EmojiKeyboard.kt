@@ -248,7 +248,7 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
                 } else {
                     LazyVerticalGrid(
                         state          = gridState,
-                        columns        = GridCells.Fixed(7),
+                        columns        = GridCells.Fixed(9),
                         modifier       = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = 8.dp)
                     ) {
@@ -262,11 +262,11 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
                             }
                         } else {
                             // Recently Used Section
-                            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(7) }) {
+                            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(9) }) {
                                 SectionHeader("Recent emoji")
                             }
                             if (recentEmojisSnapshot.isEmpty()) {
-                                item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(7) }) {
+                                item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(9) }) {
                                     Box(Modifier.fillMaxWidth().height(60.dp), contentAlignment = Alignment.Center) {
                                         Text("No recent emoji", color = ToolTxt.copy(alpha = 0.5f), fontSize = 12.sp)
                                     }
@@ -282,7 +282,7 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
 
                             // Categories Sections
                             EMOJI_CATEGORIES.forEachIndexed { catIdx, pair ->
-                                item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(7) }) {
+                                item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(9) }) {
                                     SectionHeader(EMOJI_CATEGORY_NAMES.getOrElse(catIdx) { pair.first })
                                 }
                                 items(pair.second, key = { "cat${catIdx}_$it" }) { emoji ->
@@ -585,7 +585,7 @@ private fun EmojiCell(
             ),
         contentAlignment = Alignment.Center
     ) {
-        Text(emoji, fontSize = 32.sp)
+        Text(emoji, fontSize = 36.sp)
     }
 }
 
