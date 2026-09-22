@@ -2,6 +2,7 @@
 .gradle
 /local.properties
 /.env
+/app/bodokeyboard-release.keystore
 /.idea/
 .DS_Store
 /build
