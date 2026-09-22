@@ -137,13 +137,13 @@ private fun handlePreviewKey(
         }
         "SHIFT"      -> viewModel.toggleShift()
         "SYM"        -> viewModel.toggleSymbols()
-        "SYM_PAGE"   -> viewModel.toggleSymbolsPage()
+        "SYM_PAGE", "1234" -> viewModel.toggleSymbolsPage()
         "ABC" -> {
             if (viewModel.keyboardMode.value == KeyboardMode.EMOJI ||
                 viewModel.keyboardMode.value == KeyboardMode.GIF) {
-                viewModel.setMode(KeyboardMode.BODO)
+                viewModel.setMode(KeyboardMode.ENGLISH)
             } else {
-                viewModel.toggleSymbols()
+                viewModel.resetSymbols()
             }
         }
         "MODE_SWITCH" -> {

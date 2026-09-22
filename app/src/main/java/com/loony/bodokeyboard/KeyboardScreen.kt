@@ -50,9 +50,9 @@ private class EnglishLayout(
 ) : KeyboardLayout {
 
     private val bottomRow = if (isEmailField)
-        listOf("SYM", ",", "SPACE", "@", "ENTER")
+        listOf("SYM", ",", "EMOJI_SWITCH", "SPACE", "@", "ENTER")
     else
-        listOf("SYM", ",", "SPACE", ".", "ENTER")
+        listOf("SYM", ",", "EMOJI_SWITCH", "SPACE", ".", "ENTER")
 
     override fun rows() = if (!isShifted) listOf(
         KeyRowModel(keys = listOf("q","w","e","r","t","y","u","i","o","p")),
@@ -70,18 +70,18 @@ private class EnglishLayout(
 private class SymbolsLayout : KeyboardLayout {
     override fun rows() = listOf(
         KeyRowModel(keys = listOf("1","2","3","4","5","6","7","8","9","0")),
-        KeyRowModel(keys = listOf("@","#","₹","%","&","-","+","(",")")),
+        KeyRowModel(keys = listOf("@","#","₹","_","&","-","+","(",")","/")),
         KeyRowModel(keys = listOf("SYM_PAGE","*","\"","'",":",";","!","?","BACKSPACE")),
-        KeyRowModel(keys = listOf("ABC",",","SPACE",".","ENTER"))
+        KeyRowModel(keys = listOf("ABC",",","1234","SPACE",".","ENTER"))
     )
 }
 
 private class Symbols2Layout : KeyboardLayout {
     override fun rows() = listOf(
-        KeyRowModel(keys = listOf("~","`","|","•","√","π","÷","×","{","}")),
-        KeyRowModel(keys = listOf("£","¢","€","¥","^","°","=","_","\\")),
-        KeyRowModel(keys = listOf("SYM_PAGE","[","]","«","»","!","?","BACKSPACE")),
-        KeyRowModel(keys = listOf("ABC",",","SPACE",".","ENTER"))
+        KeyRowModel(keys = listOf("~","`","|","•","√","π","÷","×","§","Δ")),
+        KeyRowModel(keys = listOf("€","¥","$","¢","^","°","=","{","}","\\")),
+        KeyRowModel(keys = listOf("SYM_PAGE","%","©","®","™","✓","[","]","BACKSPACE")),
+        KeyRowModel(keys = listOf("ABC","<","1234","SPACE",">","ENTER"))
     )
 }
 
@@ -273,11 +273,11 @@ private fun keyWeight(key: String, mode: KeyboardMode): Float {
         }
     }
     return when (key) {
-        "SPACE" -> 4.5f
+        "SPACE" -> 4f
         "ENTER" -> 1.5f
         "SHIFT", "BACKSPACE", "SYM", "ABC" -> 1.5f
         "MODE_SWITCH", "EMOJI_SWITCH" -> 1.0f
-        "SYM_PAGE", ".com" -> 1.2f
+        "SYM_PAGE", "1234", "<", ">" -> 1.2f
         else -> 1f
     }
 }

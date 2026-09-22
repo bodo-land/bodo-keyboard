@@ -30,7 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.loony.bodokeyboard.data.KeyboardMode
-import com.loony.bodokeyboard.ui.theme.AccentMint
+import com.loony.bodokeyboard.ui.theme.AccentBlue
 import com.loony.bodokeyboard.ui.theme.DividerC
 import com.loony.bodokeyboard.ui.theme.KbBg
 import com.loony.bodokeyboard.ui.theme.KeyTxt
@@ -58,7 +58,7 @@ internal fun ToolbarRow(
             modifier = Modifier
                 .size(32.dp)
                 .clip(CircleShape)
-                .background(AccentMint)
+                .background(AccentBlue)
                 .clickable { onKeyClick("COLLAPSE") },
             contentAlignment = Alignment.Center
         ) {
@@ -136,7 +136,7 @@ internal fun ToolBtn(
             .size(40.dp)
             .clip(RoundedCornerShape(8.dp))
             .then(
-                if (isHighlight) Modifier.background(AccentMint.copy(alpha = 0.25f)) else Modifier
+                if (isHighlight) Modifier.background(AccentBlue.copy(alpha = 0.25f)) else Modifier
             )
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
@@ -145,13 +145,13 @@ internal fun ToolBtn(
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,
-                tint = if (isHighlight) AccentMint else KeyTxt,
+                tint = if (isHighlight) AccentBlue else KeyTxt,
                 modifier = Modifier.size(ToolIconSize)
             )
         } else if (label != null) {
             Text(
                 text = label,
-                color = if (isHighlight) AccentMint else KeyTxt,
+                color = if (isHighlight) AccentBlue else KeyTxt,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
             )

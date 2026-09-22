@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardReturn
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowUp
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
@@ -48,7 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import com.loony.bodokeyboard.data.KeyboardMode
-import com.loony.bodokeyboard.ui.theme.AccentMint
+import com.loony.bodokeyboard.ui.theme.AccentBlue
 import com.loony.bodokeyboard.ui.theme.CapsActive
 import com.loony.bodokeyboard.ui.theme.HintTxt
 import com.loony.bodokeyboard.ui.theme.KeyNorm
@@ -59,7 +60,6 @@ import com.loony.bodokeyboard.ui.theme.KeySpecP
 import com.loony.bodokeyboard.ui.theme.KeyTxt
 import com.loony.bodokeyboard.ui.theme.KeyTxtDark
 import com.loony.bodokeyboard.ui.theme.PillShape
-import com.loony.bodokeyboard.ui.theme.SagePill
 import com.loony.bodokeyboard.viewmodel.KeyboardViewModel
 import kotlinx.coroutines.delay
 import kotlin.math.abs
@@ -118,14 +118,13 @@ fun KeyButton(
         }
     }
 
-    val isSpecial   = key in setOf("SHIFT", "BACKSPACE", "SYM", "ABC", "MODE_SWITCH", "SYM_PAGE")
+    val isSpecial   = key in setOf("SHIFT", "BACKSPACE", "SYM", "ABC", "MODE_SWITCH", "SYM_PAGE", "EMOJI_SWITCH", ",", ".", "1234")
     val isEnter     = key == "ENTER"
-    val isPill      = key in setOf("SYM", "ABC", "ENTER")
+    val isPill      = key == "ENTER"
     val isShiftCaps = key == "SHIFT" && isCapsLock
 
     val bgColor = when {
-        key == "ENTER"         -> if (isPressed) AccentMint.copy(alpha = 0.8f) else AccentMint
-        key in setOf("SYM", "ABC") -> if (isPressed) SagePill.copy(alpha = 0.8f) else SagePill
+        key == "ENTER"         -> if (isPressed) AccentBlue.copy(alpha = 0.8f) else AccentBlue
         isShiftCaps            -> CapsActive
         isSpecial              -> if (isPressed) KeySpecP else KeySpec
         else                   -> if (isPressed) KeyPressed else KeyNorm
@@ -135,9 +134,10 @@ fun KeyButton(
     val height = 38.dp * (viewModel?.keyboardHeightMultiplier?.value ?: 1f)
 
     val icon: ImageVector? = when (key) {
-        "BACKSPACE" -> Icons.AutoMirrored.Filled.Backspace
-        "ENTER"     -> resolveEnterIcon(viewModel)
-        "SHIFT"     -> when {
+        "BACKSPACE"    -> Icons.AutoMirrored.Filled.Backspace
+        "ENTER"        -> resolveEnterIcon(viewModel)
+        "EMOJI_SWITCH" -> Icons.Default.EmojiEmotions
+        "SHIFT"        -> when {
             isCapsLock                -> Icons.Default.KeyboardDoubleArrowUp
             mode == KeyboardMode.BODO -> null
             else                      -> Icons.Default.ArrowUpward
@@ -150,22 +150,23 @@ fun KeyButton(
         "SPACE"        -> when (mode) {
             KeyboardMode.BODO     -> "बर'"
             KeyboardMode.TRANSLIT -> "बर' (Translit)"
-            KeyboardMode.ENGLISH  -> "English"
+            KeyboardMode.ENGLISH  -> "" // Gboard English space is blank
             KeyboardMode.NUMERIC  -> "Space"
             else                  -> ""
         }
         "SYM"          -> "?123"
         "SYM_PAGE"     -> if (viewModel?.isSymbols2?.value == true) "?123" else "=\\<"
+        "1234"         -> "12\n34"
         "ABC"          -> "ABC"
         "BACKSPACE"    -> ""
         "MODE_SWITCH"  -> if (mode == KeyboardMode.BODO) "EN" else "बर'"
-        "EMOJI_SWITCH" -> "😊"
+        "EMOJI_SWITCH" -> ""
         "ENTER"        -> ""
         else           -> key
     }
 
     val contentColor = when {
-        key == "ENTER" || key in setOf("SYM", "ABC") -> KeyTxtDark
+        key == "ENTER" -> KeyTxtDark
         else -> KeyTxt
     }
 

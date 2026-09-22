@@ -290,7 +290,7 @@ class BodoIME : InputMethodService(), LifecycleOwner, ViewModelStoreOwner, Saved
 
             "SHIFT" -> viewModel.toggleShift()
             "SYM"   -> viewModel.toggleSymbols()
-            "SYM_PAGE" -> viewModel.toggleSymbolsPage()
+            "SYM_PAGE", "1234" -> viewModel.toggleSymbolsPage()
 
             "ABC" -> {
                 if (viewModel.keyboardMode.value == KeyboardMode.EMOJI || 
