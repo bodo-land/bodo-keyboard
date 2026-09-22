@@ -419,6 +419,10 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
                 }
             } else {
                 // ── Gboard Style Bottom Action Bar ────────────────────────────
+                // ABC and Backspace are plain icons at the edges; the four
+                // mode buttons in between (Emoji/GIF/Stickers/Emoticons) are
+                // equal-width pills — same size, same gap, filling the space
+                // between them evenly, like a segmented control.
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -436,60 +440,26 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
                         viewModel = viewModel,
                         onClick   = { onKeyClick("ABC") }
                     )
-                    
+
                     Row(
-                        modifier = Modifier.weight(1f),
-                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Emoji (active)
-                        Box(
-                            modifier = Modifier
-                                .height(32.dp)
-                                .width(56.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(AccentBlue)
-                                .clickable { /* already in emoji */ },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Default.EmojiEmotions, contentDescription = null, tint = Color.Black, modifier = Modifier.size(20.dp))
+                        BottomBarPill(modifier = Modifier.weight(1f), isActive = true, onClick = { /* already in emoji */ }) {
+                            Icon(Icons.Default.EmojiEmotions, contentDescription = "Emoji", tint = Color.Black, modifier = Modifier.size(20.dp))
                         }
-                        
-                        Spacer(Modifier.width(8.dp))
-                        
-                        // GIF
-                        Text(
-                            text = "GIF",
-                            color = ToolTxt,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier
-                                .padding(horizontal = 12.dp)
-                                .clickable { onKeyClick("GIF_SWITCH") }
-                        )
-
-                        Spacer(Modifier.width(8.dp))
-                        
-                        // Stickers (Placeholder)
-                        Icon(
-                            imageVector = Icons.Default.StickyNote2,
-                            contentDescription = "Stickers",
-                            tint = ToolTxt,
-                            modifier = Modifier
-                                .size(24.dp)
-                                .clickable { /* stickers */ }
-                        )
-
-                        Spacer(Modifier.width(12.dp))
-
-                        // Emoticons (Placeholder)
-                        Text(
-                            text = ":-)",
-                            color = ToolTxt,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clickable { /* emoticons */ }
-                        )
+                        BottomBarPill(modifier = Modifier.weight(1f), onClick = { onKeyClick("GIF_SWITCH") }) {
+                            Text(text = "GIF", color = ToolTxt, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        }
+                        BottomBarPill(modifier = Modifier.weight(1f), onClick = { /* stickers */ }) {
+                            Icon(Icons.Default.StickyNote2, contentDescription = "Stickers", tint = ToolTxt, modifier = Modifier.size(22.dp))
+                        }
+                        BottomBarPill(modifier = Modifier.weight(1f), onClick = { /* emoticons */ }) {
+                            Text(text = ":-)", color = ToolTxt, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
 
                     KeyButton(
@@ -520,6 +490,26 @@ private val EMOJI_CATEGORY_NAMES = listOf(
     "Smileys & emotion", "People & body", "Animals & nature", "Food & drink",
     "Activities", "Travel & places", "Objects", "Symbols"
 )
+
+/** One of the equal-width mode pills in the bottom action bar (Emoji/GIF/Stickers/Emoticons). */
+@Composable
+private fun BottomBarPill(
+    modifier: Modifier = Modifier,
+    isActive: Boolean = false,
+    onClick: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .height(36.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(if (isActive) AccentBlue else KeySpec)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        content()
+    }
+}
 
 /** A single category icon tab in the emoji panel. */
 @Composable
