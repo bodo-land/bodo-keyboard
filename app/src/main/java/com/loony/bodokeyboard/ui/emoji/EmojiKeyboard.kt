@@ -157,7 +157,10 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
             modifier = Modifier
                 .background(KbBg)
                 .fillMaxWidth()
-                .height(if (isSearching) 340.dp else 290.dp)
+                // Search mode needs enough headroom above the keyboard for at
+                // least two full rows of 9-column results — 340dp only left
+                // room for ~1.25 rows, cutting the second row off mid-emoji.
+                .height(if (isSearching) 380.dp else 290.dp)
         ) {
             // ── Gboard Style Header ───────────────────────────────────────────
             // Back arrow, search pill, and (when idle) the category tabs all
