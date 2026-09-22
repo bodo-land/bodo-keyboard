@@ -25,10 +25,14 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.StickyNote2
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
@@ -51,10 +56,12 @@ import androidx.compose.ui.window.PopupProperties
 import com.loony.bodokeyboard.data.KeyboardMode
 import com.loony.bodokeyboard.ui.keyboard.KeyButton
 import com.loony.bodokeyboard.ui.keyboard.ToolBtn
+import com.loony.bodokeyboard.ui.theme.AccentBlue
 import com.loony.bodokeyboard.ui.theme.ChipShape
 import com.loony.bodokeyboard.ui.theme.DividerC
 import com.loony.bodokeyboard.ui.theme.EnterBg
 import com.loony.bodokeyboard.ui.theme.KbBg
+import com.loony.bodokeyboard.ui.theme.KeyNorm
 import com.loony.bodokeyboard.ui.theme.KeySpec
 import com.loony.bodokeyboard.ui.theme.SuggTxt
 import com.loony.bodokeyboard.ui.theme.ToolTxt
@@ -148,8 +155,43 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
             modifier = Modifier
                 .background(KbBg)
                 .fillMaxWidth()
-                .height(if (isSearching) 340.dp else 280.dp)
+                .height(if (isSearching) 340.dp else 290.dp)
         ) {
+            // ── Gboard Style Header ───────────────────────────────────────────
+            if (!isSearching) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .padding(horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = ToolTxt,
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clickable { onKeyClick("ABC") }
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(36.dp)
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(KeySpec)
+                            .clickable { isSearching = true }
+                            .padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Search, contentDescription = null, tint = ToolTxt, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(text = "Search emoji", color = ToolTxt.copy(alpha = 0.7f), fontSize = 14.sp)
+                    }
+                }
+            }
+
             // ── Search & Categories ───────────────────────────────────────────
             Row(
                 modifier = Modifier
@@ -158,12 +200,12 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (isSearching) {
-                    // Full-width search bar when active
+                    // Search bar styling
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .height(36.dp)
-                            .clip(RoundedCornerShape(18.dp))
+                            .height(40.dp)
+                            .clip(RoundedCornerShape(20.dp))
                             .background(KeySpec)
                     ) {
                         Row(
@@ -172,49 +214,36 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
                                 .padding(horizontal = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Search, contentDescription = null, tint = ToolTxt, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Search, contentDescription = null, tint = ToolTxt, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(8.dp))
                             Box(modifier = Modifier.weight(1f)) {
-                                Text(searchQuery, color = androidx.compose.ui.graphics.Color.White, fontSize = 14.sp, maxLines = 1)
+                                if (searchQuery.isEmpty()) {
+                                    Text("Search", color = ToolTxt.copy(alpha = 0.5f), fontSize = 14.sp)
+                                }
+                                Text(searchQuery, color = Color.White, fontSize = 14.sp, maxLines = 1)
                             }
-                            Box(
-                                modifier = Modifier
-                                    .size(22.dp)
-                                    .clip(ChipShape)
-                                    .background(DividerC)
-                                    .clickable {
-                                        if (searchQuery.isEmpty()) isSearching = false
-                                        else searchQuery = ""
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("✕", color = SuggTxt, fontSize = 11.sp)
+                            if (searchQuery.isNotEmpty()) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Clear",
+                                    tint = ToolTxt,
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .clickable { searchQuery = "" }
+                                )
                             }
                         }
                     }
                 } else {
-                    // Compact Search Icon + Categories
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(KeySpec)
-                            .clickable { isSearching = true },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.Search, contentDescription = null, tint = ToolTxt, modifier = Modifier.size(20.dp))
-                    }
-                    
-                    Spacer(Modifier.width(8.dp))
-
+                    // Categories with Blue Accent Pill for Selected
                     LazyRow(
                         modifier = Modifier.weight(1f),
-                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         item {
                             EmojiTab(
                                 icon       = Icons.Default.AccessTime,
-                                description = "Recently used emoji",
+                                description = "Recently used",
                                 isSelected = activeCategory == -1,
                                 onClick    = {
                                     scope.launch { gridState.scrollToItem(categoryStartIndices[-1] ?: 0) }
@@ -224,7 +253,7 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
                         itemsIndexed(EMOJI_CATEGORY_ICONS) { idx, icon ->
                             EmojiTab(
                                 icon       = icon,
-                                description = EMOJI_CATEGORY_NAMES.getOrElse(idx) { "Emoji category" },
+                                description = EMOJI_CATEGORY_NAMES.getOrElse(idx) { "Category" },
                                 isSelected = activeCategory == idx,
                                 onClick    = {
                                     scope.launch { gridState.scrollToItem(categoryStartIndices[idx] ?: 0) }
@@ -235,15 +264,20 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
                 }
             }
 
+            // Google shows the recent-emoji grid as the default suggestion set
+            // when the search field is empty, instead of a blank hint.
+            val searchSuggestions: List<String>? =
+                if (isSearching && searchQuery.isBlank()) recentEmojisSnapshot else searchResults
+
             // ── Emoji grid ────────────────────────────────────────────────────
             Box(modifier = Modifier.weight(1f)) {
-                if (isSearching && searchResults == null) {
+                if (isSearching && searchQuery.isBlank() && searchSuggestions.isNullOrEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Type to search emoji", color = ToolTxt, fontSize = 13.sp)
+                        Text("Search for an emoji", color = ToolTxt, fontSize = 14.sp)
                     }
-                } else if (isSearching && searchResults?.isEmpty() == true) {
+                } else if (isSearching && searchQuery.isNotBlank() && searchSuggestions?.isEmpty() == true) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("No matching emoji", color = ToolTxt, fontSize = 13.sp)
+                        Text("No matching emoji found", color = ToolTxt, fontSize = 14.sp)
                     }
                 } else {
                     LazyVerticalGrid(
@@ -253,8 +287,8 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
                         contentPadding = PaddingValues(bottom = 8.dp)
                     ) {
                         val haptic = viewModel.hapticEnabled.value
-                        if (isSearching && searchResults != null) {
-                            items(searchResults, key = { it }) { emoji ->
+                        if (isSearching && searchSuggestions != null) {
+                            items(searchSuggestions, key = { it }) { emoji ->
                                 EmojiCell(emoji, haptic,
                                     onClick = { handleEmojiClick(it) },
                                     onLongPress = { longPressedEmoji = it }
@@ -263,12 +297,12 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
                         } else {
                             // Recently Used Section
                             item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(7) }) {
-                                SectionHeader("RECENTLY USED")
+                                SectionHeader("Recent emoji")
                             }
                             if (recentEmojisSnapshot.isEmpty()) {
                                 item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(7) }) {
-                                    Box(Modifier.fillMaxWidth().height(80.dp), contentAlignment = Alignment.Center) {
-                                        Text("No recently used emoji", color = ToolTxt.copy(alpha = 0.5f), fontSize = 12.sp)
+                                    Box(Modifier.fillMaxWidth().height(60.dp), contentAlignment = Alignment.Center) {
+                                        Text("No recent emoji", color = ToolTxt.copy(alpha = 0.5f), fontSize = 12.sp)
                                     }
                                 }
                             } else {
@@ -283,7 +317,7 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
                             // Categories Sections
                             EMOJI_CATEGORIES.forEachIndexed { catIdx, pair ->
                                 item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(7) }) {
-                                    SectionHeader(pair.first)
+                                    SectionHeader(EMOJI_CATEGORY_NAMES.getOrElse(catIdx) { pair.first })
                                 }
                                 items(pair.second, key = { "cat${catIdx}_$it" }) { emoji ->
                                     EmojiCell(emoji, haptic,
@@ -370,34 +404,83 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
                     }
                 }
             } else {
-                // ── Bottom action bar ─────────────────────────────────────────────
+                // ── Gboard Style Bottom Action Bar ────────────────────────────
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp)
-                        .background(KeySpec)
-                        .padding(horizontal = 4.dp),
+                        .height(52.dp)
+                        .background(KbBg)
+                        .padding(horizontal = 4.dp, vertical = 4.dp),
                     verticalAlignment     = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     KeyButton(
                         key       = "ABC",
-                        modifier  = Modifier.width(56.dp).height(40.dp),
+                        modifier  = Modifier.width(52.dp).height(40.dp),
                         mode      = KeyboardMode.EMOJI,
                         isCapsLock = false,
                         viewModel = viewModel,
                         onClick   = { onKeyClick("ABC") }
                     )
                     
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        ToolBtn(icon = Icons.Default.ContentPaste, contentDescription = "Paste") { onKeyClick("PASTE") }
-                        ToolBtn(icon = Icons.Default.EmojiEmotions, contentDescription = "Emoji keyboard", isHighlight = true) { /* emoji */ }
-                        ToolBtn(label = "GIF") { onKeyClick("GIF_SWITCH") }
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Emoji (active)
+                        Box(
+                            modifier = Modifier
+                                .height(32.dp)
+                                .width(56.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(AccentBlue)
+                                .clickable { /* already in emoji */ },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.EmojiEmotions, contentDescription = null, tint = Color.Black, modifier = Modifier.size(20.dp))
+                        }
+                        
+                        Spacer(Modifier.width(8.dp))
+                        
+                        // GIF
+                        Text(
+                            text = "GIF",
+                            color = ToolTxt,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .padding(horizontal = 12.dp)
+                                .clickable { onKeyClick("GIF_SWITCH") }
+                        )
+
+                        Spacer(Modifier.width(8.dp))
+                        
+                        // Stickers (Placeholder)
+                        Icon(
+                            imageVector = Icons.Default.StickyNote2,
+                            contentDescription = "Stickers",
+                            tint = ToolTxt,
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clickable { /* stickers */ }
+                        )
+
+                        Spacer(Modifier.width(12.dp))
+
+                        // Emoticons (Placeholder)
+                        Text(
+                            text = ":-)",
+                            color = ToolTxt,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.clickable { /* emoticons */ }
+                        )
                     }
 
                     KeyButton(
                         key       = "BACKSPACE",
-                        modifier  = Modifier.width(56.dp).height(40.dp),
+                        modifier  = Modifier.width(52.dp).height(40.dp),
                         mode      = KeyboardMode.EMOJI,
                         isCapsLock = false,
                         viewModel = viewModel,
@@ -429,17 +512,18 @@ private val EMOJI_CATEGORY_NAMES = listOf(
 private fun EmojiTab(icon: ImageVector, description: String, isSelected: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .size(32.dp)
-            .clip(RoundedCornerShape(6.dp))
-            .background(if (isSelected) EnterBg.copy(alpha = 0.25f) else androidx.compose.ui.graphics.Color.Transparent)
+            .height(32.dp)
+            .width(if (isSelected) 48.dp else 32.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (isSelected) AccentBlue else Color.Transparent)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector        = icon,
             contentDescription = description,
-            tint               = if (isSelected) EnterBg else androidx.compose.ui.graphics.Color.White,
-            modifier           = Modifier.size(18.dp)
+            tint               = if (isSelected) Color.Black else ToolTxt,
+            modifier           = Modifier.size(20.dp)
         )
     }
 }
