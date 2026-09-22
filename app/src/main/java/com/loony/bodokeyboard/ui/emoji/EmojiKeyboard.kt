@@ -162,7 +162,9 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
             // ── Gboard Style Header ───────────────────────────────────────────
             // Back arrow, search pill, and (when idle) the category tabs all
             // share a single row — matching Gboard, which never splits these
-            // across two lines.
+            // across two lines. While actively searching, Gboard keeps this as
+            // a static "Search emoji" title — the live, editable search field
+            // lives further down, right above the keyboard, not up here.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -176,45 +178,12 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
                     tint = ToolTxt,
                     modifier = Modifier
                         .size(24.dp)
-                        .clickable { onKeyClick("ABC") }
+                        .clickable { if (isSearching) isSearching = false else onKeyClick("ABC") }
                 )
                 Spacer(Modifier.width(8.dp))
 
                 if (isSearching) {
-                    // Live search bar — takes the rest of the row.
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(36.dp)
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(KeySpec)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.Search, contentDescription = null, tint = ToolTxt, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Box(modifier = Modifier.weight(1f)) {
-                                if (searchQuery.isEmpty()) {
-                                    Text("Search", color = ToolTxt.copy(alpha = 0.5f), fontSize = 14.sp)
-                                }
-                                Text(searchQuery, color = Color.White, fontSize = 14.sp, maxLines = 1)
-                            }
-                            if (searchQuery.isNotEmpty()) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Clear",
-                                    tint = ToolTxt,
-                                    modifier = Modifier
-                                        .size(20.dp)
-                                        .clickable { searchQuery = "" }
-                                )
-                            }
-                        }
-                    }
+                    Text(text = "Search emoji", color = ToolTxt, fontSize = 16.sp)
                 } else {
                     // Compact search pill, then the category tabs share the rest of the row.
                     Row(
@@ -329,6 +298,44 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
             }
 
             if (isSearching) {
+                // ── Live search field ───────────────────────────────────────────
+                // Gboard places the actual editable box down here, just above the
+                // keyboard, not in the header — the header stays a static title.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .height(40.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(KeySpec)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Search, contentDescription = null, tint = ToolTxt, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Box(modifier = Modifier.weight(1f)) {
+                            if (searchQuery.isEmpty()) {
+                                Text("Search", color = ToolTxt.copy(alpha = 0.5f), fontSize = 14.sp)
+                            }
+                            Text(searchQuery, color = Color.White, fontSize = 14.sp, maxLines = 1)
+                        }
+                        if (searchQuery.isNotEmpty()) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear",
+                                tint = ToolTxt,
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clickable { searchQuery = "" }
+                            )
+                        }
+                    }
+                }
+
                 // ── Search keyboard ────────────────────────────────────────────
                 // Reuses the real English qwerty rows (Shift + long-press accents
                 // come along for free) instead of hand-rolling a second layout;
