@@ -44,7 +44,7 @@ interface KeyboardLayout {
     fun rows(): List<KeyRowModel>
 }
 
-private class EnglishLayout(
+internal class EnglishLayout(
     private val isShifted: Boolean,
     private val isEmailField: Boolean
 ) : KeyboardLayout {
@@ -193,7 +193,6 @@ private fun KeyboardContent(
     onSpaceDrag: (Int) -> Unit
 ) {
     val layout = remember(state) { resolveLayout(state) }
-    val rows = layout.rows()
     var longPressedKey by remember { mutableStateOf<String?>(null) }
 
     Column(
@@ -220,40 +219,68 @@ private fun KeyboardContent(
 
         Spacer(Modifier.height(4.dp))
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            rows.forEach { row ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(row.horizontalSpacing)
-                ) {
-                    if (row.isRow2) Spacer(Modifier.weight(0.5f))
+        KeyboardRows(
+            rows        = layout.rows(),
+            mode        = state.mode,
+            isCapsLock  = state.isCapsLock,
+            viewModel   = viewModel,
+            onKeyClick  = onKeyClick,
+            onSpaceDrag = onSpaceDrag,
+            // Only keys with accented alternates get a long-press handler —
+            // SPACE needs its drag gesture free of competing long-click
+            // detection, and BACKSPACE already auto-repeats on hold.
+            onLongPressKey = { longPressedKey = it },
+            showHints      = state.isQwerty && !state.isSymbols,
+            modifier       = Modifier.padding(horizontal = 4.dp)
+        )
+    }
+}
 
-                    row.keys.forEach { key ->
-                        val hasAlternates = alternatesFor(key).isNotEmpty()
-                        KeyButton(
-                            key = key,
-                            hint = if (state.isQwerty && !state.isSymbols && rows.first() == row) getHint(key) else null,
-                            modifier = Modifier.weight(keyWeight(key, state.mode)),
-                            mode = state.mode,
-                            isCapsLock = state.isCapsLock,
-                            viewModel = viewModel,
-                            onSpaceDrag = onSpaceDrag,
-                            // Only keys with accented alternates get a long-press
-                            // handler — SPACE needs its drag gesture free of
-                            // competing long-click detection, and BACKSPACE
-                            // already auto-repeats on hold.
-                            onLongPress = if (hasAlternates) { k -> longPressedKey = k } else null,
-                            onClick = { onKeyClick(key) }
-                        )
-                    }
+/**
+ * Renders the key rows of a [KeyboardLayout]. Shared by the main keyboard and
+ * by any other surface that needs a real qwerty layout — e.g. the emoji
+ * search field reuses this with [EnglishLayout] instead of hand-rolling its
+ * own row of keys.
+ */
+@Composable
+fun KeyboardRows(
+    rows: List<KeyRowModel>,
+    mode: KeyboardMode,
+    isCapsLock: Boolean,
+    viewModel: KeyboardViewModel,
+    onKeyClick: (String) -> Unit,
+    onSpaceDrag: (Int) -> Unit = {},
+    onLongPressKey: ((String) -> Unit)? = null,
+    showHints: Boolean = false,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        rows.forEach { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(row.horizontalSpacing)
+            ) {
+                if (row.isRow2) Spacer(Modifier.weight(0.5f))
 
-                    if (row.isRow2) Spacer(Modifier.weight(0.5f))
+                row.keys.forEach { key ->
+                    val hasAlternates = onLongPressKey != null && alternatesFor(key).isNotEmpty()
+                    KeyButton(
+                        key = key,
+                        hint = if (showHints && rows.first() == row) getHint(key) else null,
+                        modifier = Modifier.weight(keyWeight(key, mode)),
+                        mode = mode,
+                        isCapsLock = isCapsLock,
+                        viewModel = viewModel,
+                        onSpaceDrag = onSpaceDrag,
+                        onLongPress = if (hasAlternates) onLongPressKey else null,
+                        onClick = { onKeyClick(key) }
+                    )
                 }
+
+                if (row.isRow2) Spacer(Modifier.weight(0.5f))
             }
         }
     }

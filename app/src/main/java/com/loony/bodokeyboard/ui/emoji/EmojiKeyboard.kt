@@ -53,6 +53,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import com.loony.bodokeyboard.EnglishLayout
+import com.loony.bodokeyboard.KeyboardRows
 import com.loony.bodokeyboard.data.KeyboardMode
 import com.loony.bodokeyboard.ui.keyboard.KeyButton
 import com.loony.bodokeyboard.ui.keyboard.ToolBtn
@@ -158,54 +160,33 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
                 .height(if (isSearching) 340.dp else 290.dp)
         ) {
             // ── Gboard Style Header ───────────────────────────────────────────
-            if (!isSearching) {
-                Row(
+            // Back arrow, search pill, and (when idle) the category tabs all
+            // share a single row — matching Gboard, which never splits these
+            // across two lines.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp)
+                    .padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = ToolTxt,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(44.dp)
-                        .padding(horizontal = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = ToolTxt,
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clickable { onKeyClick("ABC") }
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Row(
+                        .size(24.dp)
+                        .clickable { onKeyClick("ABC") }
+                )
+                Spacer(Modifier.width(8.dp))
+
+                if (isSearching) {
+                    // Live search bar — takes the rest of the row.
+                    Box(
                         modifier = Modifier
                             .weight(1f)
                             .height(36.dp)
                             .clip(RoundedCornerShape(18.dp))
-                            .background(KeySpec)
-                            .clickable { isSearching = true }
-                            .padding(horizontal = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.Search, contentDescription = null, tint = ToolTxt, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(text = "Search emoji", color = ToolTxt.copy(alpha = 0.7f), fontSize = 14.sp)
-                    }
-                }
-            }
-
-            // ── Search & Categories ───────────────────────────────────────────
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (isSearching) {
-                    // Search bar styling
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(40.dp)
-                            .clip(RoundedCornerShape(20.dp))
                             .background(KeySpec)
                     ) {
                         Row(
@@ -214,7 +195,7 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
                                 .padding(horizontal = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Search, contentDescription = null, tint = ToolTxt, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Search, contentDescription = null, tint = ToolTxt, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
                             Box(modifier = Modifier.weight(1f)) {
                                 if (searchQuery.isEmpty()) {
@@ -235,7 +216,23 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
                         }
                     }
                 } else {
-                    // Categories with Blue Accent Pill for Selected
+                    // Compact search pill, then the category tabs share the rest of the row.
+                    Row(
+                        modifier = Modifier
+                            .width(96.dp)
+                            .height(36.dp)
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(KeySpec)
+                            .clickable { isSearching = true }
+                            .padding(horizontal = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Search, contentDescription = null, tint = ToolTxt, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(text = "Search", color = ToolTxt.copy(alpha = 0.7f), fontSize = 13.sp)
+                    }
+                    Spacer(Modifier.width(4.dp))
+
                     LazyRow(
                         modifier = Modifier.weight(1f),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -332,12 +329,11 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
             }
 
             if (isSearching) {
-                // ── Refined Search Keyboard ───────────────────────────────────
-                val searchRows = listOf(
-                    listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p"),
-                    listOf("a", "s", "d", "f", "g", "h", "j", "k", "l"),
-                    listOf("z", "x", "c", "v", "b", "n", "m", "BACKSPACE")
-                )
+                // ── Search keyboard ────────────────────────────────────────────
+                // Reuses the real English qwerty rows (Shift + long-press accents
+                // come along for free) instead of hand-rolling a second layout;
+                // only the bottom row is bespoke, since "exit search" has no
+                // equivalent on the main keyboard.
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -345,41 +341,35 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
                         .padding(horizontal = 2.dp, vertical = 6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    searchRows.forEachIndexed { rowIdx, row ->
-                        Row(
-                            modifier              = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            if (rowIdx == 1) Spacer(Modifier.weight(0.4f))
-                            if (rowIdx == 2) Spacer(Modifier.weight(0.1f))
-
-                            row.forEach { key ->
-                                KeyButton(
-                                    key       = key,
-                                    modifier  = Modifier
-                                        .height(42.dp)
-                                        .weight(if (key == "BACKSPACE") 1.6f else 1f),
-                                    mode      = KeyboardMode.ENGLISH,
-                                    isCapsLock = false,
-                                    viewModel = viewModel,
-                                    onClick   = {
-                                        searchQuery = if (key == "BACKSPACE") searchQuery.dropLast(1)
-                                                      else searchQuery + key
-                                    }
-                                )
+                    KeyboardRows(
+                        rows       = EnglishLayout(
+                            isShifted    = viewModel.isShifted.value || viewModel.isCapsLock.value,
+                            isEmailField = false
+                        ).rows().dropLast(1), // drop the SYM/EMOJI_SWITCH/ENTER row — not meaningful while searching
+                        mode       = KeyboardMode.ENGLISH,
+                        isCapsLock = viewModel.isCapsLock.value,
+                        viewModel  = viewModel,
+                        showHints  = true,
+                        onKeyClick = { key ->
+                            when (key) {
+                                "SHIFT"     -> viewModel.toggleShift()
+                                "BACKSPACE" -> searchQuery = searchQuery.dropLast(1)
+                                else -> {
+                                    searchQuery += key
+                                    viewModel.autoResetShift()
+                                }
                             }
-                            if (rowIdx == 1) Spacer(Modifier.weight(0.4f))
-                            if (rowIdx == 2) Spacer(Modifier.weight(0.1f))
                         }
-                    }
+                    )
                     // Bottom space bar row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         KeyButton(
                             key       = "ABC",
-                            modifier  = Modifier.weight(1.5f).height(42.dp),
+                            modifier  = Modifier.weight(1.3f).height(42.dp),
                             mode      = KeyboardMode.EMOJI,
                             isCapsLock = false,
                             viewModel = viewModel,
@@ -387,20 +377,37 @@ fun EmojiKeyboard(viewModel: KeyboardViewModel, onKeyClick: (String) -> Unit) {
                         )
                         KeyButton(
                             key       = " ",
-                            modifier  = Modifier.weight(4f).height(42.dp),
+                            modifier  = Modifier.weight(3.6f).height(42.dp),
                             mode      = KeyboardMode.ENGLISH,
                             isCapsLock = false,
                             viewModel = viewModel,
                             onClick   = { searchQuery += " " }
                         )
                         KeyButton(
-                            key       = "DONE",
-                            modifier  = Modifier.weight(1.5f).height(42.dp),
-                            mode      = KeyboardMode.EMOJI,
+                            key       = ".",
+                            modifier  = Modifier.weight(0.9f).height(42.dp),
+                            mode      = KeyboardMode.ENGLISH,
                             isCapsLock = false,
                             viewModel = viewModel,
-                            onClick   = { isSearching = false }
+                            onClick   = { searchQuery += "." }
                         )
+                        // Gboard-style round blue "go" button instead of a plain DONE label
+                        Box(
+                            modifier = Modifier
+                                .weight(1.2f)
+                                .height(42.dp)
+                                .clip(RoundedCornerShape(21.dp))
+                                .background(AccentBlue)
+                                .clickable { isSearching = false },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Done",
+                                tint = Color.Black,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
             } else {
