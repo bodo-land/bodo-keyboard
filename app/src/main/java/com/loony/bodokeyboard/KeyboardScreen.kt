@@ -217,7 +217,10 @@ private fun KeyboardContent(
             onKeyClick = onKeyClick
         )
 
-        Spacer(Modifier.height(4.dp))
+        // The settings/mic icons sit at the toolbar's far right, directly
+        // above "o"/"p" — a bare 4dp here left only ~8dp between the icon's
+        // touch target and the key row above it, easy to fat-finger.
+        Spacer(Modifier.height(12.dp))
 
         KeyboardRows(
             rows        = layout.rows(),
