@@ -87,6 +87,13 @@ class BodoIME : InputMethodService(), LifecycleOwner, ViewModelStoreOwner, Saved
             win.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
             @Suppress("DEPRECATION")
             win.navigationBarColor = android.graphics.Color.TRANSPARENT
+            // Android still paints a semi-transparent black scrim over a
+            // transparent nav bar by default (for legibility over arbitrary
+            // app content) — without disabling it, that scrim reads as a
+            // visibly darker strip than our own KbBg behind it.
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                win.isNavigationBarContrastEnforced = false
+            }
         }
 
         val root = FrameLayout(this).apply {

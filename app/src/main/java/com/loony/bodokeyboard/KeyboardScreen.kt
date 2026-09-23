@@ -34,7 +34,7 @@ data class KeyboardState(
 
 data class KeyRowModel(
     val keys: List<String>,
-    val horizontalSpacing: Dp = 7.dp,
+    val horizontalSpacing: Dp = 5.dp,
     val verticalPadding: Dp = 0.dp,
     val horizontalPadding: Dp = 0.dp,
     val isRow2: Boolean = false 
@@ -256,12 +256,18 @@ fun KeyboardRows(
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(7.dp)
     ) {
         rows.forEach { row ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(row.horizontalSpacing)
+                // No inter-element gap here — rows have different numbers of
+                // elements (spacers, SHIFT/BACKSPACE, etc.), so a per-gap dp
+                // value eats a different total width per row and throws off
+                // cross-row column alignment even when weights match exactly.
+                // The visual gap is applied per-key below instead, which
+                // costs the same fixed width regardless of element count.
+                horizontalArrangement = Arrangement.spacedBy(0.dp)
             ) {
                 if (row.isRow2) Spacer(Modifier.weight(0.5f))
 
@@ -270,7 +276,9 @@ fun KeyboardRows(
                     KeyButton(
                         key = key,
                         hint = if (showHints && rows.first() == row) getHint(key) else null,
-                        modifier = Modifier.weight(keyWeight(key, mode)),
+                        modifier = Modifier
+                            .weight(keyWeight(key, mode))
+                            .padding(horizontal = row.horizontalSpacing / 2),
                         mode = mode,
                         isCapsLock = isCapsLock,
                         viewModel = viewModel,
